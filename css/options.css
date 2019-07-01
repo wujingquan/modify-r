@@ -1,0 +1,16 @@
+ul, li {
+  list-style: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+li {
+  padding: 20px 0;
+  border: 1px solid blue;
+  border-bottom: 0;
+}
+
+li:last-child {
+  border-bottom: 1px solid blue;
+}

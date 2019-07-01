@@ -1,0 +1,27 @@
+{
+  "manifest_version": 2,
+  "name": "Modify R",
+  "version": "0.0.1",
+  "description": "这里是描述",
+  
+
+  "homepage_url": "https://wujingquan.com",
+  
+  "options_page": "options.html",
+  
+  "background": {
+    "scripts": ["background.js"]
+  },
+
+  "permissions": [
+    "tabs",
+    "webRequest",
+    "webRequestBlocking",
+    "<all_urls>",
+    "unlimitedStorage",
+    "http://*/*",
+    "https://*/*"
+  ],
+
+  "content_security_policy": "script-src 'self' 'unsafe-eval' 'unsafe-eval'; object-src 'self';"
+}

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <script src="js/vue.js"></script>
+  <link rel="stylesheet" href="css/options.css">
+  <!-- <script src="js/vue.min.js"></script> -->
+</head>
+<body>
+  <div id="app">
+    <input type="text" v-model="req">
+    <input type="text" v-model="res">
+    <button @click="add">确定</button>
+    <button @click="show">显示数据库</button>
+
+    <ul>
+      <li v-for="item in collection">
+        <div><input type="text" v-model="item.req"></div>
+        <div><input type="text" v-model="item.res"></div>
+        <div>是否启用<input type="checkbox" name="" id="" :checked="item.checked" v-model="item.checked" @change="change"></div>
+        <div>类型<select name="" id="" @change="change" v-model="item.type">
+          <option value="css">CSS</option>
+          <option value="js">JS</option>
+        </select></div>
+      </li>
+    </ul>
+  </div>
+  <script src="js/options.js"></script>
+</body>
+</html>
