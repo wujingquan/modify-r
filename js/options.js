@@ -44,6 +44,8 @@ var app = new Vue({
 
     // 导入数据
     import_db (obj) {
+      if (!confirm('导入的数据会清空现有的数据，你确定继续操作吗？')) return
+      
       let that = this
       let file = obj.target.files[0]
       if (file) {
@@ -63,11 +65,13 @@ var app = new Vue({
 
     // 导出数据
     export_db () {
-      
+
     },
 
     // 清空规则
     clear () {
+      if (!confirm('你确定清空规则吗？')) return
+      
       this.collection = []
       this.save()
     }
