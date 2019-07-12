@@ -15,7 +15,8 @@
     <input type="text" v-model="res">
     <button @click="add">确定</button>
     <button @click="show">显示数据库</button>
-
+    <button @click="export_db">导出</button>
+    <input type="file" @change="import_db">
     <ul>
       <li v-for="item in collection">
         <div><input type="text" v-model="item.req"></div>

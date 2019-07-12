@@ -8,7 +8,12 @@ var app = new Vue({
 
   created () {
     this.bg = chrome.extension.getBackgroundPage()
-    this.collection =  JSON.parse(this.bg.localStorage.MODIFY_R)
+    try {
+      this.collection =  JSON.parse(this.bg.localStorage.MODIFY_R)
+    } catch (err) {
+      this.collection = []
+      console.error(err)
+    }
   },
   
   methods: {
@@ -35,6 +40,25 @@ var app = new Vue({
 
     change () {
       this.save()
+    },
+
+    // 导入数据
+    import_db (obj) {
+      let that = this
+      let file = obj.target.files[0]
+      if (file) {
+        let reader = new FileReader()
+        reader.readAsText(file)
+        reader.onload = function (e) {
+          try {
+            that.collection = JSON.parse(this.result)
+            that.save()
+          } catch (err) {
+            console.error(err)
+            alert("导入失败，请检查文件格式及内容是否正确")
+          }
+        }
+      }
     }
   }
 })
