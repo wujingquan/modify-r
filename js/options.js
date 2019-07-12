@@ -59,6 +59,17 @@ var app = new Vue({
           }
         }
       }
+    },
+
+    // 导出数据
+    export_db () {
+      
+    },
+
+    // 清空规则
+    clear () {
+      this.collection = []
+      this.save()
     }
   }
 })
