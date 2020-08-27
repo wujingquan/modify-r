@@ -1,9 +1,28 @@
-var app = new Vue({
+import { DEBUG }  from '../env.js'
+import { collection } from '../test/mock.js'
+
+const newCollection = []
+const indexs = [0]
+for(const item of collection.injectCollection) {
+  indexs.push(item.actions.length + indexs[indexs.length - 1])
+  for (const action of item.actions) {
+    action.target = item.target
+    newCollection.push(action)
+  }
+}
+
+console.log(newCollection)
+
+
+const app = new Vue({
   el: '#app',
-  data: {
-    collection: [],
-    req: '',
-    res: ''
+  data() {
+    return {
+      collection: [],
+      req: '',
+      res: '',
+      tableData: newCollection
+    }
   },
 
   created () {
@@ -74,6 +93,24 @@ var app = new Vue({
       
       this.collection = []
       this.save()
+    },
+
+    objectSpanMethod({ row, column, rowIndex, columnIndex }) {
+      if (columnIndex === 0) {
+        if (indexs.includes(rowIndex)) {
+          return {
+            rowspan: 4,
+            colspan: 1
+          }
+        } else {
+          return {
+            rowspan: 0,
+            colspan: 0
+          }
+        }
+      }
     }
   }
 })
+
+DEBUG && (window.app = app)

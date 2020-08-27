@@ -5,12 +5,12 @@
   "description": "这里是描述",
   
 
-  "homepage_url": "https://wujingquan.com",
+  "homepage_url": "https://www.wujingquan.com",
   
   "options_page": "options.html",
   
   "background": {
-    "scripts": ["background.js"]
+    "page": "background.html"
   },
 
   "permissions": [
