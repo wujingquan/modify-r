@@ -68,7 +68,8 @@ const app = new Vue({
         target,
         enable: true,
         disabled: false,
-        editable: false
+        editable: false,
+        uriType: ''
       }
 
       this.collectionObj[targetId].childrenLength++
@@ -162,10 +163,8 @@ const app = new Vue({
       this.save()
     },
 
-    change ({ type, enable }) {
-      if (type === 'c' && !enable) {
-        this.collectionObj[id].disabled = true
-      }
+    change () {
+      this.save()
     },
 
     // 导入数据
