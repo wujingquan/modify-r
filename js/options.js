@@ -1,19 +1,5 @@
 import { MODIFY_R, EXAMPLE_TARGET } from './constant.js'
 import { DEBUG }  from '../env.js'
-import { collection } from '../test/mock.js'
-
-const newCollection = []
-// const indexs = [0]
-// for(const item of collection.injectCollection) {
-//   indexs.push(item.actions.length + indexs[indexs.length - 1])
-//   for (const action of item.actions) {
-//     action.target = item.target
-//     newCollection.push(action)
-//   }
-// }
-
-// console.log(newCollection)
-
 
 const app = new Vue({
   el: '#app',
@@ -64,6 +50,7 @@ const app = new Vue({
         id: uuid,
         target: EXAMPLE_TARGET,
         enable: true,
+        disabled: false,
         editable: false
       }
 
@@ -80,6 +67,7 @@ const app = new Vue({
         id: uuid,
         target,
         enable: true,
+        disabled: false,
         editable: false
       }
 
@@ -102,33 +90,25 @@ const app = new Vue({
     },
 
     editTarget({ id }) {
-      if (this.collectionObj[id]['editable']) {
-        const { target } = this.collection.find((item) => {
-          return item.id === id
-        })
-
-        Object.values(this.collectionObj).filter((item) => {
-          return item.targetId === id
-        }).forEach((item) => {
-          item.target = target
-        })
-
-        
-        this.$set(this.collectionObj[id], 'editable', false)
-        this.$set(this.collectionObj[id], 'target', target)
-
-        this.save()
-      } else {
-        this.$set(this.collectionObj[id], 'editable', true )
-      }
+      this.collectionObj[id]['editable'] = true
+      this.$nextTick(() => {
+        this.$refs[`target-${id}`].focus()
+      })
     },
 
     editAction({ id }) {
-      console.log(this.collectionObj[id]['editable'] = true)
+      this.collectionObj[id]['editable'] = true
+      this.$nextTick(() => {
+        this.$refs[`uri-${id}`].focus()
+      })
     },
 
     editFn(...args) {
       const [	row, column, cell, event] = args
+      console.log(row, column, cell, event)
+      if (!['target', 'uri'].includes(column.property)) {
+        return
+      }
       if (row.type === 'p') {
         this.editTarget(row)
       }
@@ -136,6 +116,29 @@ const app = new Vue({
       if (row.type === 'c') {
         this.editAction(row)
       }
+    },
+
+    blur({ id, type, target }) {
+      this.collectionObj[id]['editable'] = false
+      if (type === 'p') {
+        Object.values(this.collectionObj).forEach((item) => {
+          if (item.type === 'c' && item.targetId === id) {
+            item.target = target 
+          }
+        })
+      }
+      this.save()
+    },
+
+    inputEnter({ id }) {
+      /**
+       * input 的 enter 事件触发该处的逻辑， 使 editable = false
+       * 当 editable = false 时，el-input 组件隐藏（生命周期结束），失去焦点
+       * 因此会触发 el-input 的 blue 事件，导致执行了 this.blur 事件
+       * 
+       */
+      this.collectionObj[id].editable = false
+      
     },
     
     delTarget({ targetId }) {
@@ -159,8 +162,10 @@ const app = new Vue({
       this.save()
     },
 
-    change () {
-      this.save()
+    change ({ type, enable }) {
+      if (type === 'c' && !enable) {
+        this.collectionObj[id].disabled = true
+      }
     },
 
     // 导入数据
@@ -221,12 +226,6 @@ const app = new Vue({
           }
         }
       }
-    }
-  },
-
-  filters: {
-    editableFn(editable) {
-      return editable ? '保存' : '编辑'
     }
   }
 })
