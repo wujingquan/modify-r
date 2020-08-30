@@ -1,48 +1,81 @@
+import { MODIFY_R, EXAMPLE_TARGET } from './constant.js'
 import { DEBUG }  from '../env.js'
-import { collection } from '../test/mock.js'
-
-const newCollection = []
-const indexs = [0]
-for(const item of collection.injectCollection) {
-  indexs.push(item.actions.length + indexs[indexs.length - 1])
-  for (const action of item.actions) {
-    action.target = item.target
-    newCollection.push(action)
-  }
-}
-
-console.log(newCollection)
-
 
 const app = new Vue({
   el: '#app',
   data() {
     return {
-      collection: [],
-      req: '',
-      res: '',
-      tableData: newCollection
+      collectionObj: {}
     }
   },
 
+  computed: {
+    collection() {
+      const ret = _.groupBy(Object.values(this.collectionObj), 'targetId')
+      return [].concat(...Object.values(ret))
+    }
+  },
+  
   created () {
-    this.bg = chrome.extension.getBackgroundPage()
-    try {
-      this.collection =  JSON.parse(this.bg.localStorage.MODIFY_R)
-    } catch (err) {
-      this.collection = []
-      console.error(err)
+    this._bg = chrome.extension.getBackgroundPage()
+    let database = this._bg.localStorage[MODIFY_R]
+    if (database) {
+      database = JSON.parse(database)
+      if (Array.isArray(database) && database.length) {
+        this.collectionObj = {}
+      } else {
+        this.collectionObj = database
+      }
+    } else {
+      this.collectionObj = {}
     }
   },
   
   methods: {
-    add () {
-      let obj = {
-        req: this.req,
-        res: this.res,
-        checked: true
+    addTarget () {
+      const isExist = this.collection.find((item) => {
+        return item.target === EXAMPLE_TARGET
+      })
+      console.log(isExist)
+
+      if (isExist) {
+        return
       }
-      this.collection.push(obj)
+      
+      const uuid = uuidv4()
+      const obj = {
+        type: 'p',
+        childrenLength: 1,
+        targetId: uuid,
+        id: uuid,
+        target: EXAMPLE_TARGET,
+        enable: true,
+        disabled: false,
+        editable: false
+      }
+
+      this.$set(this.collectionObj, uuid, obj)
+      this.addAction(obj)
+      this.save()
+    },
+
+    addAction({ targetId, target }) {
+      const uuid = uuidv4()
+      const obj = {
+        type: 'c',
+        targetId: targetId,
+        id: uuid,
+        target,
+        enable: true,
+        disabled: false,
+        editable: false,
+        uriType: ''
+      }
+
+      this.collectionObj[targetId].childrenLength++
+      
+      this.$set(this.collectionObj, uuid, obj)
+
       this.save()
     },
 
@@ -52,9 +85,82 @@ const app = new Vue({
     },
 
     save () {
-      this.bg.localStorage.MODIFY_R = JSON.stringify(this.collection)
+      this._bg.localStorage[MODIFY_R] = JSON.stringify(this.collectionObj)
       
-      console.log(this.bg.localStorage.MODIFY_R)
+      console.log(this._bg.localStorage[MODIFY_R], this.collectionObj)
+    },
+
+    editTarget({ id }) {
+      this.collectionObj[id]['editable'] = true
+      this.$nextTick(() => {
+        this.$refs[`target-${id}`].focus()
+      })
+    },
+
+    editAction({ id }) {
+      this.collectionObj[id]['editable'] = true
+      this.$nextTick(() => {
+        this.$refs[`uri-${id}`].focus()
+      })
+    },
+
+    editFn(...args) {
+      const [	row, column, cell, event] = args
+      console.log(row, column, cell, event)
+      if (!['target', 'uri'].includes(column.property)) {
+        return
+      }
+      if (row.type === 'p') {
+        this.editTarget(row)
+      }
+
+      if (row.type === 'c') {
+        this.editAction(row)
+      }
+    },
+
+    blur({ id, type, target }) {
+      this.collectionObj[id]['editable'] = false
+      if (type === 'p') {
+        Object.values(this.collectionObj).forEach((item) => {
+          if (item.type === 'c' && item.targetId === id) {
+            item.target = target 
+          }
+        })
+      }
+      this.save()
+    },
+
+    inputEnter({ id }) {
+      /**
+       * input 的 enter 事件触发该处的逻辑， 使 editable = false
+       * 当 editable = false 时，el-input 组件隐藏（生命周期结束），失去焦点
+       * 因此会触发 el-input 的 blue 事件，导致执行了 this.blur 事件
+       * 
+       */
+      this.collectionObj[id].editable = false
+      
+    },
+    
+    delTarget({ targetId }) {
+      Object.values(this.collectionObj)
+        .filter((action) => {
+          return action.targetId === targetId
+        })
+        .map((action) => {
+          return action.id
+        })
+        .forEach((id) => {
+          this.$delete(this.collectionObj, id)
+        })
+      
+      this.save()
+    },
+
+    delAction({ id, targetId }) {
+      this.$delete(this.collectionObj, id)
+      this.collectionObj[targetId].childrenLength--
+      this.save()
     },
 
     change () {
@@ -96,13 +202,23 @@ const app = new Vue({
     },
 
     objectSpanMethod({ row, column, rowIndex, columnIndex }) {
-      if (columnIndex === 0) {
-        if (indexs.includes(rowIndex)) {
+      if (row.type === 'p') {
+        if (columnIndex < 2) {
           return {
-            rowspan: 4,
+            rowspan: row.childrenLength,
             colspan: 1
           }
-        } else {
+        }
+        if (columnIndex > 1) {
+          return {
+            rowspan: 0,
+            colspan: 0
+          }
+        }
+      }
+
+      if (row.type === 'c') {
+        if (columnIndex < 2) {
           return {
             rowspan: 0,
             colspan: 0
