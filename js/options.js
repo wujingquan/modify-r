@@ -5,33 +5,37 @@ const app = new Vue({
   el: '#app',
   data() {
     return {
-      collectionObj: {}
-    }
-  },
-
-  computed: {
-    collection() {
-      const ret = _.groupBy(Object.values(this.collectionObj), 'targetId')
-      return [].concat(...Object.values(ret))
+      collection: []
     }
   },
   
   created () {
     this._bg = chrome.extension.getBackgroundPage()
-    let database = this._bg.localStorage[MODIFY_R]
-    if (database) {
-      database = JSON.parse(database)
-      if (Array.isArray(database) && database.length) {
-        this.collectionObj = {}
-      } else {
-        this.collectionObj = database
+    const collection = this._bg.localStorage[MODIFY_R]
+    this.collection = collection ? JSON.parse(collection) : []
+  },
+
+  watch: {
+    collection: {
+      deep: true,
+      handler(newCollection) {
+        this._bg.localStorage[MODIFY_R] = JSON.stringify(newCollection)
+        this._bg.getLocalStorage()
       }
-    } else {
-      this.collectionObj = {}
     }
   },
   
   methods: {
+    addGroup() {
+      const id = uuidv4()
+      this.collection.push({
+        id,
+        name: 'Default',
+        groupEditable: false,
+        childrenLength: 1
+      })
+      this.addAction({ id })
+    },
     addTarget () {
       const isExist = this.collection.find((item) => {
         return item.target === EXAMPLE_TARGET
@@ -44,12 +48,11 @@ const app = new Vue({
       
       const uuid = uuidv4()
       const obj = {
-        type: 'p',
         childrenLength: 1,
         targetId: uuid,
         id: uuid,
         target: EXAMPLE_TARGET,
-        enable: true,
+        enabled: true,
         disabled: false,
         editable: false
       }
@@ -59,24 +62,22 @@ const app = new Vue({
       this.save()
     },
 
-    addAction({ targetId, target }) {
-      const uuid = uuidv4()
-      const obj = {
-        type: 'c',
-        targetId: targetId,
-        id: uuid,
-        target,
-        enable: true,
-        disabled: false,
-        editable: false,
-        uriType: ''
-      }
+    addAction({ id }) {
+      const collection = this.collection
+      collection.push({
+        groupId: id,
+        id:  uuidv4(),
+        name: '',
+        request: '',
+        response: '',
+        requestEditable: false,
+        responseEditable: false,
+        actionType: 'XHR',
+        enabled: true
+      })
 
-      this.collectionObj[targetId].childrenLength++
-      
-      this.$set(this.collectionObj, uuid, obj)
-
-      this.save()
+      collection.find(item => item.id === id).childrenLength++
+      this.collection = Object.values(_.groupBy(collection, (item) => item.groupId || item.id)).flat()
     },
 
     show () {
@@ -91,7 +92,7 @@ const app = new Vue({
     },
 
     editTarget({ id }) {
-      this.collectionObj[id]['editable'] = true
+      this.collection[id]['editable'] = true
       this.$nextTick(() => {
         this.$refs[`target-${id}`].focus()
       })
@@ -107,60 +108,88 @@ const app = new Vue({
     editFn(...args) {
       const [	row, column, cell, event] = args
       console.log(row, column, cell, event)
-      if (!['target', 'uri'].includes(column.property)) {
+      if (row.groupId && column.label === 'Request') {
+        this.editRequest(row)
         return
       }
-      if (row.type === 'p') {
-        this.editTarget(row)
+      if (row.groupId && column.label === 'Response') {
+        this.editResponse(row)
+        return
       }
 
-      if (row.type === 'c') {
-        this.editAction(row)
+      if (!row.groupId && column.label === 'Group') {
+        this.editGroup(row)
+        return
       }
     },
 
-    blur({ id, type, target }) {
-      this.collectionObj[id]['editable'] = false
-      if (type === 'p') {
-        Object.values(this.collectionObj).forEach((item) => {
-          if (item.type === 'c' && item.targetId === id) {
-            item.target = target 
-          }
-        })
-      }
-      this.save()
+    editRequest(action) {
+      action.requestEditable = true
+      this.$nextTick(() => {
+        this.$refs[`requestRef-${action.id}`].focus()
+      })
     },
 
-    inputEnter({ id }) {
+    editResponse(action) {
+      action.responseEditable = true
+      this.$nextTick(() => {
+        this.$refs[`responseRef-${action.id}`].focus()
+      })
+    },
+
+    editGroup(group) {
+      group.groupEditable = true
+      this.$nextTick(() => {
+        this.$refs[`groupRef-${group.id}`].focus()
+      })
+    },
+
+    blur(row) {
+      if (row.groupId) {
+        row.requestEditable = false
+        row.responseEditable = false
+        return
+      }
+      
+      if (!row.groupId) {
+        row.groupEditable = false
+        return
+      }
+    },
+
+    inputEnter(row) {
       /**
        * input 的 enter 事件触发该处的逻辑， 使 editable = false
        * 当 editable = false 时，el-input 组件隐藏（生命周期结束），失去焦点
-       * 因此会触发 el-input 的 blue 事件，导致执行了 this.blur 事件
+       * 因此会触发 el-input 的 blur 事件，导致执行了 this.blur 事件
        * 
        */
-      this.collectionObj[id].editable = false
+       if (row.groupId) {
+        row.requestEditable = false
+        row.responseEditable = false
+        return
+      }
       
+      if (!row.groupId) {
+        row.groupEditable = false
+        return
+      }
     },
     
-    delTarget({ targetId }) {
-      Object.values(this.collectionObj)
-        .filter((action) => {
-          return action.targetId === targetId
-        })
-        .map((action) => {
-          return action.id
-        })
-        .forEach((id) => {
-          this.$delete(this.collectionObj, id)
-        })
-      
-      this.save()
+    delGroup({ id }) {
+      this.collection = this.collection.filter(item => {
+        if (item.id === id) return false
+        if (item.groupId && item.groupId === id) return false
+        return true
+      })
     },
 
-    delAction({ id, targetId }) {
-      this.$delete(this.collectionObj, id)
-      this.collectionObj[targetId].childrenLength--
-      this.save()
+    delAction({ id, groupId }) {
+      const collection = this.collection
+      const index = collection.findIndex(item => item.id === id)
+      this.$delete(this.collection, index)
+      const group = collection.find(item => item.id === groupId)
+      group.childrenLength--
     },
 
     change () {
@@ -201,15 +230,26 @@ const app = new Vue({
       this.save()
     },
 
+    rowStyleFn({ row, rowIndex }) {
+      if (row.groupId) {
+        const group = this.collection.find(item => item.id === row.groupId)
+        if (group.childrenLength === 2) {
+          return {
+            height: '86px'
+          }
+        }
+      }
+    },
+    
     objectSpanMethod({ row, column, rowIndex, columnIndex }) {
-      if (row.type === 'p') {
-        if (columnIndex < 2) {
+      if (!row.groupId) {
+        if (columnIndex < 1) {
           return {
             rowspan: row.childrenLength,
             colspan: 1
           }
         }
-        if (columnIndex > 1) {
+        if (columnIndex > 0) {
           return {
             rowspan: 0,
             colspan: 0
@@ -217,8 +257,8 @@ const app = new Vue({
         }
       }
 
-      if (row.type === 'c') {
-        if (columnIndex < 2) {
+      if (row.groupId) {
+        if (columnIndex < 1) {
           return {
             rowspan: 0,
             colspan: 0

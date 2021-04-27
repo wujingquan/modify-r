@@ -17,47 +17,60 @@
   <div id="app">
     <button @click="addTarget">add</button>
     <button @click="clear">clear</button>
+    <button @click="addGroup">添加组</button>
     <el-table
       border
       :data="collection"
       :span-method="objectSpanMethod"
+      :row-style="rowStyleFn"
       @cell-dblclick="editFn"
       style="width: 100%">
 
-      <el-table-column label="操作" width="320" align="center">
-        <template slot-scope="scope">
-          <el-switch v-model="scope.row.enable" active-color="#13ce66" inactive-color="#ff4949" @change="change(scope.row)"></el-switch>
-          <el-button
-            size="mini"
-            @click="addAction(scope.row)"
-          >添加</el-button>
-          <el-button
-            size="mini"
-            type="danger"
-            @click="delTarget(scope.row)"
-          >删除</el-button>
+    <el-table-column label="Group" prop="name" align="center" width="320" >
+      <template slot-scope="scope">
+        <template v-if="!scope.row.groupEditable">
+          <div style="margin-bottom: 10px;">{{ scope.row.name }}</div>
+          <div>
+            <!-- <el-switch v-model="scope.row.enabled" active-color="#13ce66" inactive-color="#ff4949" @change="change(scope.row)"></el-switch> -->
+            <el-button
+              size="mini"
+              @click.stop
+            >禁用</el-button>
+            <el-button
+              size="mini"
+              @click.stop="addAction(scope.row)"
+            >添加</el-button>
+            <el-button
+              size="mini"
+              type="danger"
+              @click.stop="delGroup(scope.row)"
+            >删除</el-button>
+          </div>
         </template>
-      </el-table-column>
+        <el-input v-else :ref="'groupRef-' + scope.row.id" v-model="scope.row.name" @blur="blur(scope.row)" @keyup.enter.native="inputEnter(scope.row)"></el-input>
+      </template>
+    </el-table-column>
       
-      <el-table-column prop="target" label="目标" align="center">
+      <el-table-column prop="request" label="Request" align="center">
         <template slot-scope="scope">
-          <template v-if="!scope.row.editable">{{ scope.row.target }}</template>
-          <el-input v-else :ref="'target-' + scope.row.id" v-model="scope.row.target" @blur="blur(scope.row)" @keyup.enter.native="inputEnter(scope.row)"></el-input>
+          <template v-if="!scope.row.requestEditable">{{ scope.row.request }}</template>
+          <el-input v-else :ref="'requestRef-' + scope.row.id" v-model="scope.row.request" @blur="blur(scope.row)" @keyup.enter.native="inputEnter(scope.row)"></el-input>
         </template>
       </el-table-column>
       
       <el-table-column
-        prop="uri"
-        label="URI" align="center">
+        prop="response"
+        label="Response" align="center">
         <template slot-scope="scope">
-          <template v-if="!scope.row.editable">{{ scope.row.uri }}</template>
-          <el-input v-else :ref="'uri-' + scope.row.id" v-model="scope.row.uri" @blur="blur(scope.row)" @keyup.enter.native="inputEnter(scope.row)"></el-input>
+          <template v-if="!scope.row.responseEditable">{{ scope.row.response }}</template>
+          <el-input v-else :ref="'responseRef-' + scope.row.id" v-model="scope.row.response" @blur="blur(scope.row)" @keyup.enter.native="inputEnter(scope.row)"></el-input>
         </template>
       </el-table-column>
 
-      <el-table-column label="资源类型" width="160" align="center">
+      <el-table-column label="资源类型" width="240" align="center">
         <template slot-scope="scope">
-          <el-radio-group v-model="scope.row.uriType" size="mini" @change="change(scope.row)">
+          <el-radio-group v-model="scope.row.actionType" size="mini" @change="change(scope.row)" disabled>
+            <el-radio-button label="XHR"></el-radio-button>
             <el-radio-button label="CSS"></el-radio-button>
             <el-radio-button label="JS"></el-radio-button>
           </el-radio-group>
@@ -66,7 +79,7 @@
 
       <el-table-column label="操作（对URI的操作）" width="220" align="center">
         <template slot-scope="scope">
-          <el-switch v-model="scope.row.enable" active-color="#13ce66" inactive-color="#ff4949" @change="change(scope.row)"></el-switch>
+          <el-switch v-model="scope.row.enabled" active-color="#13ce66" inactive-color="#ff4949" @change="change(scope.row)"></el-switch>
           <el-button
             size="mini"
             type="danger"
@@ -75,6 +88,11 @@
         </template>
       </el-table-column>
 
+      <!-- <div slot="append">
+        <el-button
+          size="mini"
+        >添加</el-button>
+      </div> -->
     </el-table>
 
   </div>
