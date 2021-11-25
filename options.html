@@ -15,9 +15,9 @@
 </head>
 <body>
   <div id="app">
-    <button @click="addTarget">add</button>
-    <button @click="clear">clear</button>
-    <button @click="addGroup">添加组</button>
+    <el-button type="primary" size="mini" @click="addTarget">add</el-button>
+    <el-button type="primary" size="mini" @click="clear">clear</el-button>
+    <el-button type="primary" size="mini" @click="addGroup">添加组</el-button>
     <el-table
       border
       :data="collection"
