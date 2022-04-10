@@ -26,7 +26,13 @@ const app = new Vue({
   },
   
   methods: {
+    hasEmptyAction() {
+      const actions = this.collection.filter(item => item.groupId)
+      return actions.some(item => (!item.request && item.groupId) || (!item.response && item.groupId))
+    },
     addGroup() {
+      if (this.hasEmptyAction()) return this.$message.error('请把空白的填写完成')
+
       const id = uuidv4()
       this.collection.push({
         id,
@@ -63,12 +69,9 @@ const app = new Vue({
     },
 
     addAction({ id }) {
+      if (this.hasEmptyAction()) return this.$message.error('请把空白的填写完成')
+      
       const collection = this.collection
-      // 如果当前组有空白的 Request 或者 Response 则不能再添加
-      const emptyList = collection.filter(item => (!item.request && item.groupId) || (!item.response && item.groupId))
-      console.log('emptyList', emptyList)
-      if (emptyList.length) return this.$message.error('请把空白的填写完成')
-
       collection.push({
         groupId: id,
         id:  uuidv4(),
