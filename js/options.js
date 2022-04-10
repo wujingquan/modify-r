@@ -67,10 +67,8 @@ const app = new Vue({
       // 如果当前组有空白的 Request 或者 Response 则不能再添加
       const emptyList = collection.filter(item => (!item.request && item.groupId) || (!item.response && item.groupId))
       console.log('emptyList', emptyList)
-      if (emptyList.length) {
-        this.$message.error('请把空白的填写完成')
-        return
-      }
+      if (emptyList.length) return this.$message.error('请把空白的填写完成')
+
       collection.push({
         groupId: id,
         id:  uuidv4(),
@@ -85,6 +83,12 @@ const app = new Vue({
 
       collection.find(item => item.id === id).childrenLength++
       this.collection = Object.values(_.groupBy(collection, (item) => item.groupId || item.id)).flat()
+    },
+
+    cpAction(row) {
+      this.collection.push({ ...row, id: uuidv4() })
+      this.collection.find(item => item.id === row.groupId).childrenLength++
+      this.$message.success('复制成功')
     },
 
     show () {
